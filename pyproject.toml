@@ -1,0 +1,16 @@
+[project]
+name = "robin-count"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "discord-py>=2.5.2",
+    "dotenv>=0.9.9",
+    "pymongo>=4.11.2",
+]
+
+[dependency-groups]
+dev = [
+    "dotenv>=0.9.9",
+]
