@@ -89,15 +89,30 @@ async def leaderboard(interaction: discord.Interaction, timeframe: discord.app_c
     from lib.leaderboard import get_leaderboard_embed
 
     await interaction.response.defer(ephemeral=False)
+    match timeframe:
+        case "all":
+            embed=get_leaderboard_embed(guild=interaction.guild)
+        case "daily":
+            now = datetime.datetime.now(tz=utc)
+            if now.hour < 4:
+                now = now - datetime.timedelta(days = 1)
+            
+            embed=get_leaderboard_embed(guild=interaction.guild,
+                                        start_date=now.replace(hour=0, minute=0, second=0, microsecond=0),
+                                        end_date=now, )
+        case "weekly":
+            embed=get_leaderboard_embed(guild=interaction.guild)
+        case _:
+            embed = "Error! Timeframe not recognized!"
+
     await interaction.followup.send(
-        embed=get_leaderboard_embed(guild=interaction.guild)
+        embed=embed
     )
 
 @tasks.loop(
     time=[
         datetime.time(hour=21, tzinfo=utc), # 9pm UTC
         datetime.time(hour=1, tzinfo=utc),  # 9pm EST
-        datetime.time(hour=19, minute=22, tzinfo=utc), #TEST
     ]
 )
 async def daily_leaderboard():

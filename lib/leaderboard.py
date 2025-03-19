@@ -70,7 +70,7 @@ def get_daily_leaderboard_embed(
             top_member = member
             top=f":crown: **{member.display_name}**: {entry['total']} <:tiny_winner_robin:1351970472916680744>"
             continue
-        lists=f"{rank}. {member.display_name}: {entry['total']} <:tiny_robin:1351821803156279336>\n"
+        lists=f"\u0020{rank}. {member.display_name}: {entry['total']} <:tiny_robin:1351821803156279336>\n"
     embed.add_field(name=top, value=lists, inline=False)
     embed.set_thumbnail(url=top_member.display_avatar.url)
 
