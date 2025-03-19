@@ -87,8 +87,6 @@ async def leaderboard(interaction: discord.Interaction):
         embed=get_leaderboard_embed(guild=interaction.guild)
     )
 
-
-# TODO: fix scheduling
 @tasks.loop(
     time=[
         datetime.time(hour=13, tzinfo=utc), # 9am
