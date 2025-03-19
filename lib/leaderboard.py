@@ -22,12 +22,12 @@ def get_leaderboard_embed(
     description = ""
     for rank, entry in enumerate(leaderboard_data, start=1):
         # Attempt to get the member object from the guild.
-        member = guild.get_member(int(entry["_id"])) if guild else None
+        member = guild.get_member(int(entry["user_id"])) if guild else None
         if rank == 1:
             top_member = member
         description += (
             f"{rank}. **{member.display_name}**: {entry['total']} "
-            "<:tiny_robin:1350570765719961700>"
+            "<:tiny_robin:1351821803156279336>"
         )
 
     embed = discord.Embed(title="Robin Leaderboard", description=description)

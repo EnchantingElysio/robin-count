@@ -40,7 +40,7 @@ class RobinClient(discord.Client):
 
         # Start the daily leaderboard task.
         if not daily_leaderboard.is_running():
-            daily_leaderboard.start(self.guild)
+            daily_leaderboard.start()
         logging.info("Ready!")
 
 
@@ -48,7 +48,7 @@ intents = discord.Intents.default()
 intents.members = True
 client = RobinClient(intents=intents)
 
-
+#TODO: update count instead of constantly recreating
 @client.tree.command(
     name="add",
     description="Add number of robins at the current time.",
@@ -96,23 +96,26 @@ async def leaderboard(interaction: discord.Interaction):
         datetime.time(hour=1, tzinfo=utc),  # 9pm
     ]
 )
-async def daily_leaderboard(guild: discord.Guild):
+async def daily_leaderboard():
     from lib.leaderboard import get_leaderboard_embed
 
-    channel = guild.system_channel
+    guilds = client.guilds
 
-    now = datetime.datetime.now(tz=utc)
-    embed = get_leaderboard_embed(
-        guild=guild,
-        # TODO: Have 9pm shows past 24 hours instead of 12
-        start_date=now - datetime.timedelta(hours=12),
-        end_date=now,
-    )
-    await channel.send(embed=embed)
-    logging.info(
-        f"Daily leaderboard sent in '{channel.name}' at "
-        f"{datetime.datetime.now(tz=utc)}"
-    )
+    for guild in guilds:
+        channel = guild.system_channel
+
+        now = datetime.datetime.now(tz=utc)
+        embed = get_leaderboard_embed(
+            guild=guild,
+            # TODO: Have 9pm show past 24 hours instead of 12
+            start_date=now - datetime.timedelta(hours=12),
+            end_date=now,
+        )
+        await channel.send(embed=embed)
+        logging.info(
+            f"Daily leaderboard sent in '{channel.name}' in '{guild.name}' at "
+            f"{datetime.datetime.now(tz=utc)}"
+        )
 
 
 @daily_leaderboard.before_loop
