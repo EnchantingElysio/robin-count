@@ -1,13 +1,13 @@
 services:
-  # app:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   restart: always
-  #   env_file:
-  #     - .env
-  #   ports:
-  #     - 17013:17013
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - 17013:17013
   mongo:
     image: mongo:latest
     container_name: mongodb
