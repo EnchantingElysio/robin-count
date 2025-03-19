@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+from typing import List
 
 import discord
 from discord.ext import tasks
@@ -20,6 +21,7 @@ class RobinClient(discord.Client):
     def __init__(self, *, intents: discord.Intents):
         super().__init__(intents=intents)
         self.tree = discord.app_commands.CommandTree(self)
+        self.app_commands = discord.app_commands
         self.guild: discord.Guild = None
 
     async def setup_hook(self):
@@ -75,11 +77,15 @@ async def user_robins(interaction: discord.Interaction, member: discord.Member):
         ephemeral=True,
     )
 
-
 @client.tree.command(
     name="leaderboard", description="Show the top robin users."
 )
-async def leaderboard(interaction: discord.Interaction):
+@client.app_commands.choices(timeframe=[
+        client.app_commands.Choice(name="Weekly", value="weekly"),
+        client.app_commands.Choice(name="Daily", value="daily"),
+        client.app_commands.Choice(name="All", value="all"),
+        ])
+async def leaderboard(interaction: discord.Interaction, timeframe: discord.app_commands.Choice[str] = "weekly"):
     from lib.leaderboard import get_leaderboard_embed
 
     await interaction.response.defer(ephemeral=False)
@@ -89,8 +95,9 @@ async def leaderboard(interaction: discord.Interaction):
 
 @tasks.loop(
     time=[
-        datetime.time(hour=13, tzinfo=utc), # 9am
-        datetime.time(hour=1, tzinfo=utc),  # 9pm
+        datetime.time(hour=21, tzinfo=utc), # 9pm UTC
+        datetime.time(hour=1, tzinfo=utc),  # 9pm EST
+        datetime.time(hour=19, minute=22, tzinfo=utc), #TEST
     ]
 )
 async def daily_leaderboard():
@@ -102,10 +109,14 @@ async def daily_leaderboard():
         channel = guild.system_channel
 
         now = datetime.datetime.now(tz=utc)
+        if now.hour < 4:
+            now = now - datetime.timedelta(days = 1)
+        # update leaderboard to include weekly (since sunday)
+        # datetime.date.today()
+        # sun = today - datetime.timedelta(7+((today.isoweekday() + 1) % 7)))
         embed = get_leaderboard_embed(
             guild=guild,
-            # TODO: Have 9pm show past 24 hours instead of 12
-            start_date=now - datetime.timedelta(hours=12),
+            start_date=now.replace(hour=0, minute=0, second=0, microsecond=0),
             end_date=now,
         )
         await channel.send(embed=embed)
