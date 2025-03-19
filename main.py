@@ -48,7 +48,6 @@ intents = discord.Intents.default()
 intents.members = True
 client = RobinClient(intents=intents)
 
-#TODO: update count instead of constantly recreating
 @client.tree.command(
     name="add",
     description="Add number of robins at the current time.",
