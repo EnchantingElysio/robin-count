@@ -6,6 +6,8 @@ services:
     restart: always
     env_file:
       - .env
+    environment:
+      - PYTHONUNBUFFERED=1
     ports:
       - 17013:17013
   mongo:
