@@ -92,8 +92,8 @@ async def leaderboard(interaction: discord.Interaction):
 # TODO: fix scheduling
 @tasks.loop(
     time=[
-        datetime.time(hour=9, tzinfo=utc),
-        datetime.time(hour=21, tzinfo=utc),
+        datetime.time(hour=13, tzinfo=utc), # 9am
+        datetime.time(hour=1, tzinfo=utc),  # 9pm
     ]
 )
 async def daily_leaderboard(guild: discord.Guild):
@@ -104,6 +104,7 @@ async def daily_leaderboard(guild: discord.Guild):
     now = datetime.datetime.now(tz=utc)
     embed = get_leaderboard_embed(
         guild=guild,
+        # TODO: Have 9pm shows past 24 hours instead of 12
         start_date=now - datetime.timedelta(hours=12),
         end_date=now,
     )
