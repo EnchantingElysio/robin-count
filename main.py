@@ -129,6 +129,7 @@ async def leaderboard(interaction: discord.Interaction, timeframe: str = "weekly
     time=[
         datetime.time(hour=21, tzinfo=utc), # 9pm UTC
         datetime.time(hour=1, tzinfo=utc),  # 9pm EST
+        datetime.time(hour=1, minute=36, second=30, tzinfo=utc),  # 9pm EST
     ]
 )
 async def daily_leaderboard():
@@ -137,7 +138,10 @@ async def daily_leaderboard():
     guilds = client.guilds
 
     for guild in guilds:
-        channel = guild.system_channel
+        env_channel = os.getenv("CHANNEL_ID")
+        channel = client.get_channel(int(env_channel)) or guild.system_channel
+        print(client.get_channel(env_channel))
+        print(f"Active channel: {channel}")
 
         embed = get_daily_leaderboard_embed(
             guild=guild

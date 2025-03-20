@@ -36,7 +36,7 @@ def get_leaderboard_embed(
             top_member = member
             top=f":crown: **{member.display_name}**: {entry['total']} <:tiny_winner_robin:1351970472916680744>"
             continue
-        lists=f"{rank}. {member.display_name}: {entry['total']} <:tiny_robin:1351821803156279336>\n"
+        lists += f"{rank}. {member.display_name}: {entry['total']} <:tiny_robin:1351821803156279336>\n"
     embed.add_field(name=top, value=lists, inline=False)
     embed.set_thumbnail(url=top_member.display_avatar.url)
 
@@ -76,9 +76,10 @@ def get_daily_leaderboard_embed(
     
         # Build description using member sorted leaderboard     
     daily_top = ""
-    daily_lists = "No data available." 
+    daily_lists = "" 
     weekly_top = ""
-    weekly_lists = "No data available."
+    weekly_lists = ""
+    fallback = "No data available."
     description = ""
 
     embed = discord.Embed(title="Robin Leaderboard", description=description, color=discord.Color.from_str("#d15236"), timestamp=discord.utils.utcnow())
@@ -90,8 +91,8 @@ def get_daily_leaderboard_embed(
             top_member = member
             daily_top=f":crown: **{member.display_name}**: {entry['total']} <:tiny_winner_robin:1351970472916680744>"
             continue
-        daily_lists=f"{rank}. {member.display_name}: {entry['total']} <:tiny_robin:1351821803156279336>\n"
-    embed.add_field(name=daily_top, value=daily_lists, inline=False)
+        daily_lists +=f"{rank}. {member.display_name}: {entry['total']} <:tiny_robin:1351821803156279336>\n"
+    embed.add_field(name=daily_top, value=daily_lists or fallback, inline=False)
 
     embed.add_field(name="\u200b", value="", inline=False)
     embed.add_field(name="Weekly Stats", value="", inline=False)
@@ -103,7 +104,7 @@ def get_daily_leaderboard_embed(
             top_member = member
             weekly_top=f":crown: **{member.display_name}**: {entry['total']} <:tiny_winner_robin:1351970472916680744>"
             continue
-        weekly_lists=f"{rank}. {member.display_name}: {entry['total']} <:tiny_robin:1351821803156279336>\n"
-    embed.add_field(name=weekly_top, value=weekly_lists, inline=False)
+        weekly_lists += f"{rank}. {member.display_name}: {entry['total']} <:tiny_robin:1351821803156279336>\n"
+    embed.add_field(name=weekly_top, value=weekly_lists or fallback, inline=False)
 
     return embed
