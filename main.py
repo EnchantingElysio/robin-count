@@ -129,7 +129,6 @@ async def leaderboard(interaction: discord.Interaction, timeframe: str = "weekly
     time=[
         datetime.time(hour=21, tzinfo=utc), # 9pm UTC
         datetime.time(hour=1, tzinfo=utc),  # 9pm EST
-        datetime.time(hour=1, minute=36, second=30, tzinfo=utc),  # 9pm EST
     ]
 )
 async def daily_leaderboard():
