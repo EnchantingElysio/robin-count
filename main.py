@@ -2,6 +2,7 @@ import datetime
 import logging
 import os
 from typing import List
+from dateutil import relativedelta
 
 import discord
 from discord.ext import tasks
@@ -44,6 +45,7 @@ class RobinClient(discord.Client):
         if not daily_leaderboard.is_running():
             daily_leaderboard.start()
         logging.info("Ready!")
+        print("Ready!")
 
 
 intents = discord.Intents.default()
@@ -77,31 +79,45 @@ async def user_robins(interaction: discord.Interaction, member: discord.Member):
         ephemeral=True,
     )
 
+
 @client.tree.command(
     name="leaderboard", description="Show the top robin users."
 )
 @client.app_commands.choices(timeframe=[
         client.app_commands.Choice(name="Weekly", value="weekly"),
         client.app_commands.Choice(name="Daily", value="daily"),
-        client.app_commands.Choice(name="All", value="all"),
+        client.app_commands.Choice(name="All Time", value="all"),
         ])
-async def leaderboard(interaction: discord.Interaction, timeframe: discord.app_commands.Choice[str] = "weekly"):
+async def leaderboard(interaction: discord.Interaction, timeframe: str = "weekly"):
     from lib.leaderboard import get_leaderboard_embed
 
     await interaction.response.defer(ephemeral=False)
+
+    # Calculate accurate date for EST
+    now = datetime.datetime.now(tz=utc)
+    if now.hour < 4:
+        now = now - datetime.timedelta(days = 1)
+
     match timeframe:
         case "all":
-            embed=get_leaderboard_embed(guild=interaction.guild)
+            embed=get_leaderboard_embed(guild=interaction.guild, 
+                                        start_date=datetime.datetime(1970, 1, 1, 0, 0, 0, 0, tzinfo=utc), 
+                                        end_date=datetime.datetime.now(utc), 
+                                        timeframe=timeframe)
+
         case "daily":
-            now = datetime.datetime.now(tz=utc)
-            if now.hour < 4:
-                now = now - datetime.timedelta(days = 1)
-            
             embed=get_leaderboard_embed(guild=interaction.guild,
-                                        start_date=now.replace(hour=0, minute=0, second=0, microsecond=0),
-                                        end_date=now, )
+                                        start_date=now.replace(hour=4, minute=0, second=0, microsecond=0),
+                                        end_date=datetime.datetime.now(utc), 
+                                        timeframe=timeframe)
         case "weekly":
-            embed=get_leaderboard_embed(guild=interaction.guild)
+            today = datetime.date.today()
+            start = now + relativedelta.relativedelta(weekday=relativedelta.SU(-1))
+            start = start.replace(hour=4, minute=0, second=0, microsecond=0)
+            embed=get_leaderboard_embed(guild=interaction.guild,
+                                        start_date=start,
+                                        end_date=datetime.datetime.now(utc),
+                                        timeframe=timeframe)
         case _:
             embed = "Error! Timeframe not recognized!"
 
@@ -116,25 +132,22 @@ async def leaderboard(interaction: discord.Interaction, timeframe: discord.app_c
     ]
 )
 async def daily_leaderboard():
-    from lib.leaderboard import get_leaderboard_embed
+    from lib.leaderboard import get_daily_leaderboard_embed
 
     guilds = client.guilds
 
     for guild in guilds:
         channel = guild.system_channel
 
-        now = datetime.datetime.now(tz=utc)
-        if now.hour < 4:
-            now = now - datetime.timedelta(days = 1)
-        # update leaderboard to include weekly (since sunday)
-        # datetime.date.today()
-        # sun = today - datetime.timedelta(7+((today.isoweekday() + 1) % 7)))
-        embed = get_leaderboard_embed(
-            guild=guild,
-            start_date=now.replace(hour=0, minute=0, second=0, microsecond=0),
-            end_date=now,
+        embed = get_daily_leaderboard_embed(
+            guild=guild
         )
-        await channel.send(embed=embed)
+
+        # Set robin thumbnail
+        file = discord.File("images/tiny_winner_robin.png")
+        embed.set_thumbnail(url="attachment://tiny_winner_robin.png")
+
+        await channel.send(embed=embed, file=file)
         logging.info(
             f"Daily leaderboard sent in '{channel.name}' in '{guild.name}' at "
             f"{datetime.datetime.now(tz=utc)}"

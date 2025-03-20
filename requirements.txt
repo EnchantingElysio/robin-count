@@ -11,5 +11,7 @@ idna==3.10
 multidict==6.1.0
 propcache==0.3.0
 pymongo==4.11.2
+python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
+six==1.17.0
 yarl==1.18.3
