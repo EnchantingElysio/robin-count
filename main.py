@@ -190,7 +190,6 @@ async def progress(interaction: discord.Interaction, timeframe: str = "weekly"):
     total = int(robin_data[0]["total"])
 
     progress_bar: str = get_progress_bar(goal=goal, total=total)
-    print(progress_bar)
     
     embed = discord.Embed(
             title="Robin Data",
