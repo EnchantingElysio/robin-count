@@ -13,6 +13,7 @@ load_dotenv()
 
 GUILD_ID = int(os.getenv("GUILD_ID"))
 utc = datetime.timezone.utc
+robin_orange = discord.Color.from_str("#d15236")
 
 discord.utils.setup_logging(
     level=getattr(logging, os.getenv("LOG_LEVEL")), root=False
@@ -104,13 +105,15 @@ async def leaderboard(interaction: discord.Interaction, timeframe: str = "weekly
                 embed=get_leaderboard_embed(guild=interaction.guild, 
                                             start_date=datetime.datetime(1970, 1, 1, 0, 0, 0, 0, tzinfo=utc), 
                                             end_date=datetime.datetime.now(utc), 
-                                            timeframe=timeframe)
+                                            timeframe=timeframe,
+                                            color=robin_orange)
 
             case "daily":
                 embed=get_leaderboard_embed(guild=interaction.guild,
                                             start_date=now.replace(hour=4, minute=0, second=0, microsecond=0),
                                             end_date=datetime.datetime.now(utc), 
-                                            timeframe=timeframe)
+                                            timeframe=timeframe,
+                                            color=robin_orange)
             case "weekly":
                 today = datetime.date.today()
                 start = now + relativedelta.relativedelta(weekday=relativedelta.SU(-1))
@@ -118,7 +121,8 @@ async def leaderboard(interaction: discord.Interaction, timeframe: str = "weekly
                 embed=get_leaderboard_embed(guild=interaction.guild,
                                             start_date=start,
                                             end_date=datetime.datetime.now(utc),
-                                            timeframe=timeframe)
+                                            timeframe=timeframe,
+                                            color=robin_orange)
             case _:
                 embed = "Error! Timeframe not recognized!"
     
@@ -130,6 +134,128 @@ async def leaderboard(interaction: discord.Interaction, timeframe: str = "weekly
     await interaction.followup.send(
         embed=embed
     )
+
+@client.tree.command(
+        name="progress", description="Show the server's progress toward its goal!"
+)
+@client.app_commands.choices(timeframe=[
+        client.app_commands.Choice(name="Weekly", value="weekly"),
+        client.app_commands.Choice(name="Daily", value="daily"),
+        # client.app_commands.Choice(name="Seasonal", value="seasonal"),
+        ])
+async def progress(interaction: discord.Interaction, timeframe: str = "weekly"):
+    from lib.mongo import get_all_in_timeframe
+    from lib.progressbar import get_progress_bar
+
+    await interaction.response.defer(ephemeral=False)
+
+    # Calculate accurate date for EST
+    now = datetime.datetime.now(tz=utc)
+    if now.hour < 4:
+        now = now - datetime.timedelta(days = 1)
+
+    robin_data = None
+    embed = ""
+    wgoal = int(os.getenv("WEEKLY_GOAL"))
+    goal = wgoal
+
+    try:
+        match timeframe:
+            # TODO: add seasonal support
+            # case "seasonal":
+            #     robin_data=get_all_in_timeframe( 
+            #                                 start_date=datetime.datetime(1970, 1, 1, 0, 0, 0, 0, tzinfo=utc), 
+            #                                 end_date=datetime.datetime.now(utc)
+            #                                 )
+            #     goal=None
+
+            case "daily":
+                robin_data=get_all_in_timeframe(
+                                            start_date=now.replace(hour=4, minute=0, second=0, microsecond=0),
+                                            end_date=datetime.datetime.now(utc)
+                                            )
+                goal = wgoal/7
+            case "weekly":
+                today = datetime.date.today()
+                start = now + relativedelta.relativedelta(weekday=relativedelta.SU(-1))
+                start = start.replace(hour=4, minute=0, second=0, microsecond=0)
+                robin_data=get_all_in_timeframe(
+                                            start_date=start,
+                                            end_date=datetime.datetime.now(utc)
+                                            )
+            case _:
+                print("Error! Unable to get robin data")
+            
+        if not robin_data:
+            await interaction.followup.send(
+                embed=embed
+            )
+            return
+
+        total = int(robin_data[0]["total"])
+    except Exception as e:
+        traceback.print_stack()
+        logging.error(traceback.format_exc())
+        await interaction.followup.send(embed=discord.Embed(title="Robin Progress", description="Error! Unable to get robin data"))
+        return
+
+    progress_bar: str = get_progress_bar(goal=goal, total=total)
+    
+    embed = discord.Embed(
+            title=f"Robin Progress ({str.capitalize(timeframe)})",
+            color=discord.Color.from_str("#e7bf59")
+        )
+    
+    percentage_value=f"You're {round((total/goal)*100)}% there!"
+
+    if total == int(goal):
+        percentage_value="Woo! You've hit your goal! 🎉"
+    elif total/goal > 1:
+        percentage_value=f"Wow! You exceeded your goal by {round((total/goal)*100)}%! 🎉🎉🎉"
+        #TODO: change colors across rainbow as we exceed goal further?
+    else:
+        embed.color=robin_orange   # set embed color to orange if goal not met
+
+    embed.add_field(name=f"{total}/{round(goal)} Robins logged",
+                    value=percentage_value,
+                    inline=False)
+    
+    embed.add_field(name=progress_bar, value="")
+    
+    # Set robin thumbnail
+    file = discord.File("images/tiny_winner_robin.png")
+    embed.set_thumbnail(url="attachment://tiny_winner_robin.png")
+
+    await interaction.followup.send(embed=embed, file=file)
+
+
+@client.tree.command(
+        name="total", description="Get the total amount of robins logged!"
+)
+async def total(interaction: discord.Interaction):
+    from lib.mongo import get_all_in_timeframe
+
+    await interaction.response.defer(ephemeral=False)
+
+    try:
+        robin_data=get_all_in_timeframe( 
+                                    start_date=datetime.datetime(1970, 1, 1, 0, 0, 0, 0, tzinfo=utc), 
+                                    end_date=datetime.datetime.now(utc)
+                                    )
+            
+        if not robin_data:
+            await interaction.followup.send(
+                embed="Error: Unable to get robin data!"
+            )
+            return
+        
+        total = int(robin_data[0]["total"])
+    except Exception as e:
+        traceback.print_stack()
+        logging.error(traceback.format_exc())
+        await interaction.followup.send(embed=discord.Embed(title="Total", description="Error! Unable to get robin data"))
+        return
+    await interaction.followup.send(embed=discord.Embed(title=f"A total of {total} robins have been logged!", color=robin_orange))
 
 @tasks.loop(
     time=[
@@ -149,7 +275,8 @@ async def daily_leaderboard():
             print(f"Active channel: {channel}")
 
             embed = get_daily_leaderboard_embed(
-                guild=guild
+                guild=guild,
+                color=robin_orange
             )
 
             # Set robin thumbnail

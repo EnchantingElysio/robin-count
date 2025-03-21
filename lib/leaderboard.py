@@ -5,7 +5,7 @@ import discord
 
 
 def get_leaderboard_embed(
-    guild: discord.Guild, start_date: datetime = None, end_date: datetime = None, timeframe="all"
+    guild: discord.Guild, start_date: datetime = None, end_date: datetime = None, timeframe="all", color = None
 ):
     from lib.mongo import get_leaderboard
 
@@ -28,7 +28,7 @@ def get_leaderboard_embed(
     lists = "" 
     description = f"{timeframe} stats:"
 
-    embed = discord.Embed(title="Robin Leaderboard", description=description, color=discord.Color.from_str("#d15236"), timestamp=discord.utils.utcnow())
+    embed = discord.Embed(title="Robin Leaderboard", description=description, color=color, timestamp=discord.utils.utcnow())
     for rank, entry in enumerate(leaderboard_data, start=1):
         # Attempt to get the member object from the guild.
         member = guild.get_member(int(entry["user_id"])) if guild else None
@@ -43,7 +43,7 @@ def get_leaderboard_embed(
     return embed
 
 def get_daily_leaderboard_embed(
-    guild: discord.Guild
+    guild: discord.Guild, color = None
 ):
     from lib.mongo import get_leaderboard
 
@@ -82,7 +82,7 @@ def get_daily_leaderboard_embed(
     fallback = "No data available."
     description = ""
 
-    embed = discord.Embed(title="Robin Leaderboard", description=description, color=discord.Color.from_str("#d15236"), timestamp=discord.utils.utcnow())
+    embed = discord.Embed(title="Robin Leaderboard", description=description, color=color, timestamp=discord.utils.utcnow())
     embed.add_field(name="Daily Roundup", value="", inline=False)
     for rank, entry in enumerate(daily_leaderboard_data, start=1):
         # Attempt to get the member object from the guild.

@@ -74,3 +74,29 @@ def get_leaderboard(
     )
     docs = list(c.aggregate(pipeline))
     return docs
+
+def get_all_in_timeframe(
+    start_date: datetime = None, end_date: datetime = None
+):
+    query = {}
+    if start_date or end_date:
+        query["logged"] = {}
+        if start_date:
+            query["logged"]["$gte"] = start_date
+        if end_date:
+            query["logged"]["$lte"] = end_date
+    pipeline = []
+    if query:
+        pipeline.append({"$match": query})
+
+    pipeline.extend(
+        [
+            {"$group": {
+                "_id" : {},
+                "total" : {"$sum": "$count"}
+                }}
+        ]
+    )
+    docs = list(c.aggregate(pipeline))
+    return docs
+
