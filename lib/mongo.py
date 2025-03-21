@@ -92,9 +92,9 @@ def get_all_in_timeframe(
     pipeline.extend(
         [
             {"$group": {
-                "_id" : {"$sum" : "$count"}
-                }},
-            {"$sort": {"total": -1}},
+                "_id" : {},
+                "total" : {"$sum": "$count"}
+                }}
         ]
     )
     docs = list(c.aggregate(pipeline))

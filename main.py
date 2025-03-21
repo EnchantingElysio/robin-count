@@ -180,14 +180,15 @@ async def progress(interaction: discord.Interaction, timeframe: str = "weekly"):
                                         )
         case _:
             print("Error! Unable to get robin data")
-            
+        
     if not robin_data:
         await interaction.followup.send(
             embed=embed
         )
         return
-    
-    total = int(robin_data[0]["_id"])
+
+    total = int(robin_data[0]["total"])
+
     progress_bar: str = get_progress_bar(goal=goal, total=total)
     print(progress_bar)
     
