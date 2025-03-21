@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+import traceback
 from typing import List
 from dateutil import relativedelta
 
@@ -97,30 +98,35 @@ async def leaderboard(interaction: discord.Interaction, timeframe: str = "weekly
     now = datetime.datetime.now(tz=utc)
     if now.hour < 4:
         now = now - datetime.timedelta(days = 1)
+    try:
+        match timeframe:
+            case "all":
+                embed=get_leaderboard_embed(guild=interaction.guild, 
+                                            start_date=datetime.datetime(1970, 1, 1, 0, 0, 0, 0, tzinfo=utc), 
+                                            end_date=datetime.datetime.now(utc), 
+                                            timeframe=timeframe)
 
-    match timeframe:
-        case "all":
-            embed=get_leaderboard_embed(guild=interaction.guild, 
-                                        start_date=datetime.datetime(1970, 1, 1, 0, 0, 0, 0, tzinfo=utc), 
-                                        end_date=datetime.datetime.now(utc), 
-                                        timeframe=timeframe)
-
-        case "daily":
-            embed=get_leaderboard_embed(guild=interaction.guild,
-                                        start_date=now.replace(hour=4, minute=0, second=0, microsecond=0),
-                                        end_date=datetime.datetime.now(utc), 
-                                        timeframe=timeframe)
-        case "weekly":
-            today = datetime.date.today()
-            start = now + relativedelta.relativedelta(weekday=relativedelta.SU(-1))
-            start = start.replace(hour=4, minute=0, second=0, microsecond=0)
-            embed=get_leaderboard_embed(guild=interaction.guild,
-                                        start_date=start,
-                                        end_date=datetime.datetime.now(utc),
-                                        timeframe=timeframe)
-        case _:
-            #TODO fix this so it'll actually return properly 
-            embed = "Error! Timeframe not recognized!"
+            case "daily":
+                embed=get_leaderboard_embed(guild=interaction.guild,
+                                            start_date=now.replace(hour=4, minute=0, second=0, microsecond=0),
+                                            end_date=datetime.datetime.now(utc), 
+                                            timeframe=timeframe)
+            case "weekly":
+                today = datetime.date.today()
+                start = now + relativedelta.relativedelta(weekday=relativedelta.SU(-1))
+                start = start.replace(hour=4, minute=0, second=0, microsecond=0)
+                embed=get_leaderboard_embed(guild=interaction.guild,
+                                            start_date=start,
+                                            end_date=datetime.datetime.now(utc),
+                                            timeframe=timeframe)
+            case _:
+                #TODO fix this so it'll actually return properly 
+                embed = "Error! Timeframe not recognized!"
+    
+    except Exception as e:
+        traceback.print_stack()
+        logging.error(traceback.format_exc())
+        embed=discord.Embed(title="Robin Leaderboard", description="Error retrieving leaderboard!")
 
     await interaction.followup.send(
         embed=embed
@@ -202,28 +208,35 @@ async def progress(interaction: discord.Interaction, timeframe: str = "weekly"):
 )
 async def daily_leaderboard():
     from lib.leaderboard import get_daily_leaderboard_embed
+    try:
+        guilds = client.guilds
 
-    guilds = client.guilds
+        for guild in guilds:
+            env_channel = os.getenv("CHANNEL_ID")
+            channel = client.get_channel(int(env_channel)) or guild.system_channel
+            print(client.get_channel(env_channel))
+            print(f"Active channel: {channel}")
 
-    for guild in guilds:
-        env_channel = os.getenv("CHANNEL_ID")
-        channel = client.get_channel(int(env_channel)) or guild.system_channel
-        print(client.get_channel(env_channel))
-        print(f"Active channel: {channel}")
+            embed = get_daily_leaderboard_embed(
+                guild=guild
+            )
 
-        embed = get_daily_leaderboard_embed(
-            guild=guild
-        )
+            # Set robin thumbnail
+            file = discord.File("images/tiny_winner_robin.png")
+            embed.set_thumbnail(url="attachment://tiny_winner_robin.png")
 
-        # Set robin thumbnail
-        file = discord.File("images/tiny_winner_robin.png")
-        embed.set_thumbnail(url="attachment://tiny_winner_robin.png")
+            await channel.send(embed=embed, file=file)
+            logging.info(
+                f"Daily leaderboard sent in '{channel.name}' in '{guild.name}' at "
+                f"{datetime.datetime.now(tz=utc)}"
+            )
 
-        await channel.send(embed=embed, file=file)
-        logging.info(
-            f"Daily leaderboard sent in '{channel.name}' in '{guild.name}' at "
-            f"{datetime.datetime.now(tz=utc)}"
-        )
+    except Exception as e:
+        traceback.print_stack()
+        logging.error(traceback.format_exc())
+        embed=discord.Embed(title="Robin Leaderboard", description="Error retrieving daily leaderboard!")
+        await channel.send(embed=embed)
+
 
 
 @daily_leaderboard.before_loop
