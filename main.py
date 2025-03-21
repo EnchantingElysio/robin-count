@@ -156,48 +156,73 @@ async def progress(interaction: discord.Interaction, timeframe: str = "weekly"):
     wgoal = int(os.getenv("WEEKLY_GOAL"))
     goal = wgoal
 
-    match timeframe:
-        # case "seasonal":
-        #     robin_data=get_all_in_timeframe( 
-        #                                 start_date=datetime.datetime(1970, 1, 1, 0, 0, 0, 0, tzinfo=utc), 
-        #                                 end_date=datetime.datetime.now(utc)
-        #                                 )
-        #     goal=None
+    try:
+        match timeframe:
+            # case "seasonal":
+            #     robin_data=get_all_in_timeframe( 
+            #                                 start_date=datetime.datetime(1970, 1, 1, 0, 0, 0, 0, tzinfo=utc), 
+            #                                 end_date=datetime.datetime.now(utc)
+            #                                 )
+            #     goal=None
 
-        case "daily":
-            robin_data=get_all_in_timeframe(
-                                        start_date=now.replace(hour=4, minute=0, second=0, microsecond=0),
-                                        end_date=datetime.datetime.now(utc)
-                                        )
-            goal = wgoal/7
-        case "weekly":
-            today = datetime.date.today()
-            start = now + relativedelta.relativedelta(weekday=relativedelta.SU(-1))
-            start = start.replace(hour=4, minute=0, second=0, microsecond=0)
-            robin_data=get_all_in_timeframe(
-                                        start_date=start,
-                                        end_date=datetime.datetime.now(utc)
-                                        )
-        case _:
-            print("Error! Unable to get robin data")
-        
-    if not robin_data:
-        await interaction.followup.send(
-            embed=embed
-        )
+            case "daily":
+                robin_data=get_all_in_timeframe(
+                                            start_date=now.replace(hour=4, minute=0, second=0, microsecond=0),
+                                            end_date=datetime.datetime.now(utc)
+                                            )
+                goal = wgoal/7
+            case "weekly":
+                today = datetime.date.today()
+                start = now + relativedelta.relativedelta(weekday=relativedelta.SU(-1))
+                start = start.replace(hour=4, minute=0, second=0, microsecond=0)
+                robin_data=get_all_in_timeframe(
+                                            start_date=start,
+                                            end_date=datetime.datetime.now(utc)
+                                            )
+            case _:
+                print("Error! Unable to get robin data")
+            
+        if not robin_data:
+            await interaction.followup.send(
+                embed=embed
+            )
+            return
+
+        total = int(robin_data[0]["total"])
+    except Exception as e:
+        traceback.print_stack()
+        logging.error(traceback.format_exc())
+        await interaction.followup.send(embed=discord.Embed(title="Robin Progress", description="Error! Unable to get robin data"))
         return
-
-    total = int(robin_data[0]["total"])
 
     progress_bar: str = get_progress_bar(goal=goal, total=total)
     
     embed = discord.Embed(
-            title="Robin Data",
-            description = progress_bar,
+            title=f"Robin Progress ({str.capitalize(timeframe)})",
+            color=discord.Color.from_str("#e7bf59")
         )
-    await interaction.followup.send(
-        embed=embed
-    )
+    
+    percentage_value=f"You're {round((total/goal)*100)}% there!"
+
+    if total == int(goal):
+        percentage_value="Woo! You've hit your goal! 🎉"
+    elif total/goal > 1:
+        percentage_value=f"Wow! You exceeded your goal by {round((total/goal)*100)}%! 🎉🎉🎉"
+        #TODO: change colors across rainbow as we exceed goal further?
+    else:
+        embed.color=discord.Color.from_str("#d15236")   # set embed color to orange if goal not met
+
+    embed.add_field(name=f"{total}/{round(goal)} Robins logged",
+                    value=percentage_value,
+                    inline=False)
+    
+    embed.add_field(name=progress_bar, value="")
+    
+    # Set robin thumbnail
+    file = discord.File("images/tiny_winner_robin.png")
+    embed.set_thumbnail(url="attachment://tiny_winner_robin.png")
+
+    await interaction.followup.send(embed=embed, file=file)
 
 
 @tasks.loop(

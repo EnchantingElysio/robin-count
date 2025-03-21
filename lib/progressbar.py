@@ -9,7 +9,7 @@ def get_progress_bar(goal: int, total: int, num_squares: int = 10) -> str:
 
     progress_bar_string = ""
 
-    if whole_squares > num_squares:
+    if whole_squares >= num_squares:
         for x in range(num_squares):
             progress_bar_string += "🟨"
         return progress_bar_string
