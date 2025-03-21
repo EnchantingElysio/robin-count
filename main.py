@@ -188,7 +188,7 @@ async def progress(interaction: discord.Interaction, timeframe: str = "weekly"):
             
         if not robin_data:
             await interaction.followup.send(
-                embed="Error: Unable to get robin data!"
+                embed=discord.Embed("Error: Unable to get robin data!")
             )
             return
 
@@ -245,7 +245,7 @@ async def total(interaction: discord.Interaction):
             
         if not robin_data:
             await interaction.followup.send(
-                embed="Error: Unable to get robin data!"
+                embed=discord.Embed("Error: Unable to get robin data!")
             )
             return
         
