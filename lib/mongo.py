@@ -63,10 +63,14 @@ def get_leaderboard(
 
     pipeline.extend(
         [
-            {"$group": {"_id": "$user_id", "total": {"$sum": "$count"}}},
+            {"$group": {
+                "_id" : {"user_id" : "$user_id"},
+                "user_id": {"$first" : "$user_id"}, 
+                "total": {"$sum": "$count"}
+                }},
             {"$sort": {"total": -1}},
             {"$limit": limit},
         ]
     )
-    results = list(c.aggregate(pipeline))
-    return results
+    docs = list(c.aggregate(pipeline))
+    return docs
