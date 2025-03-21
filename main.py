@@ -132,10 +132,11 @@ async def leaderboard(interaction: discord.Interaction, timeframe: str = "weekly
 @client.app_commands.choices(timeframe=[
         client.app_commands.Choice(name="Weekly", value="weekly"),
         client.app_commands.Choice(name="Daily", value="daily"),
-        client.app_commands.Choice(name="All Time", value="all"),
+        # client.app_commands.Choice(name="Seasonal", value="seasonal"),
         ])
 async def progress(interaction: discord.Interaction, timeframe: str = "weekly"):
     from lib.mongo import get_all_in_timeframe
+    from lib.progressbar import get_progress_bar
 
     await interaction.response.defer(ephemeral=False)
 
@@ -146,19 +147,23 @@ async def progress(interaction: discord.Interaction, timeframe: str = "weekly"):
 
     robin_data = None
     embed = ""
+    wgoal = int(os.getenv("WEEKLY_GOAL"))
+    goal = wgoal
 
     match timeframe:
-        case "all":
-            robin_data=get_all_in_timeframe( 
-                                        start_date=datetime.datetime(1970, 1, 1, 0, 0, 0, 0, tzinfo=utc), 
-                                        end_date=datetime.datetime.now(utc)
-                                        )
+        # case "seasonal":
+        #     robin_data=get_all_in_timeframe( 
+        #                                 start_date=datetime.datetime(1970, 1, 1, 0, 0, 0, 0, tzinfo=utc), 
+        #                                 end_date=datetime.datetime.now(utc)
+        #                                 )
+        #     goal=None
 
         case "daily":
             robin_data=get_all_in_timeframe(
                                         start_date=now.replace(hour=4, minute=0, second=0, microsecond=0),
                                         end_date=datetime.datetime.now(utc)
                                         )
+            goal = wgoal/7
         case "weekly":
             today = datetime.date.today()
             start = now + relativedelta.relativedelta(weekday=relativedelta.SU(-1))
@@ -170,18 +175,23 @@ async def progress(interaction: discord.Interaction, timeframe: str = "weekly"):
         case _:
             print("Error! Unable to get robin data")
             
-
-
     if not robin_data:
-        return discord.Embed(
-            title="Robin Leaderboard",
-            description="No leaderboard data available",
+        await interaction.followup.send(
+            embed=embed
         )
+        return
     
-    return discord.Embed(
+    total = int(robin_data[0]["_id"])
+    progress_bar: str = get_progress_bar(goal=goal, total=total)
+    print(progress_bar)
+    
+    embed = discord.Embed(
             title="Robin Data",
-            description=robin_data,
+            description = progress_bar,
         )
+    await interaction.followup.send(
+        embed=embed
+    )
 
 
 @tasks.loop(
