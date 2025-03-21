@@ -119,11 +119,70 @@ async def leaderboard(interaction: discord.Interaction, timeframe: str = "weekly
                                         end_date=datetime.datetime.now(utc),
                                         timeframe=timeframe)
         case _:
+            #TODO fix this so it'll actually return properly 
             embed = "Error! Timeframe not recognized!"
 
     await interaction.followup.send(
         embed=embed
     )
+
+@client.tree.command(
+        name="progress", description="Show the server's progress toward its goal!"
+)
+@client.app_commands.choices(timeframe=[
+        client.app_commands.Choice(name="Weekly", value="weekly"),
+        client.app_commands.Choice(name="Daily", value="daily"),
+        client.app_commands.Choice(name="All Time", value="all"),
+        ])
+async def progress(interaction: discord.Interaction, timeframe: str = "weekly"):
+    from lib.mongo import get_all_in_timeframe
+
+    await interaction.response.defer(ephemeral=False)
+
+    # Calculate accurate date for EST
+    now = datetime.datetime.now(tz=utc)
+    if now.hour < 4:
+        now = now - datetime.timedelta(days = 1)
+
+    robin_data = None
+    embed = ""
+
+    match timeframe:
+        case "all":
+            robin_data=get_all_in_timeframe( 
+                                        start_date=datetime.datetime(1970, 1, 1, 0, 0, 0, 0, tzinfo=utc), 
+                                        end_date=datetime.datetime.now(utc)
+                                        )
+
+        case "daily":
+            robin_data=get_all_in_timeframe(
+                                        start_date=now.replace(hour=4, minute=0, second=0, microsecond=0),
+                                        end_date=datetime.datetime.now(utc)
+                                        )
+        case "weekly":
+            today = datetime.date.today()
+            start = now + relativedelta.relativedelta(weekday=relativedelta.SU(-1))
+            start = start.replace(hour=4, minute=0, second=0, microsecond=0)
+            robin_data=get_all_in_timeframe(
+                                        start_date=start,
+                                        end_date=datetime.datetime.now(utc)
+                                        )
+        case _:
+            print("Error! Unable to get robin data")
+            
+
+
+    if not robin_data:
+        return discord.Embed(
+            title="Robin Leaderboard",
+            description="No leaderboard data available",
+        )
+    
+    return discord.Embed(
+            title="Robin Data",
+            description=robin_data,
+        )
+
 
 @tasks.loop(
     time=[
